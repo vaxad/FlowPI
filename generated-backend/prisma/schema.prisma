@@ -7,11 +7,15 @@ datasource db {
   url      = env("BACKEND_DATABASE_URL")
 }
 
-model User {
+model test1 {
  id  String  @id @default(auto()) @map("_id") @db.ObjectId
-  username String@unique
-  email String@unique
-  password String
-  createdAt String@default("this")
+  name String
+  pass BigInt
+}
+
+model test3 {
+ id  String  @id @default(auto()) @map("_id") @db.ObjectId
+  email String
+  password BigInt
 }
 
