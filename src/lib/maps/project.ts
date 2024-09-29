@@ -91,12 +91,12 @@ export const generateRelationField = (relation: Relation): string => {
     }
   };
 
+  /* eslint-disable  @typescript-eslint/no-explicit-any */
   export const getValue = (attribute: Entity["attributes"][number]): any => {
     if(attribute.type === "string") return `"${attribute.constraint?.value}"`;
     if(attribute.type === "number") return parseFloat(attribute.constraint?.value || "0");
     if(attribute.type === "boolean") return attribute.constraint?.value === "true";
     if(attribute.type === "Date") return new Date(attribute.constraint?.value || new Date());
-    if(Array.isArray(attribute.type)) return (attribute.constraint?.value || "").trim().split(",");
   }
 
 

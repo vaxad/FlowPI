@@ -1,5 +1,3 @@
-import fs from 'fs';
-import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 import archiver from "archiver";
 import { Entity } from '@/lib/types/project';
@@ -9,11 +7,13 @@ import { Readable } from 'stream';
 
 // POST /api/generate
 export async function POST(req: NextRequest) {
-  let { entities, relations, auth, name, description }: GenerateFormData =  await req.json();
-  console.log({ relations });
+  const body: GenerateFormData =  await req.json();
+  let { entities, relations } =  body
+  const { auth, name, description } =  body
+  
   const archive = archiver('zip', { zlib: { level: 9 } });
   relations = ensureRelations(relations);
-  console.log({ relations });
+  
   const stream = new Readable({
     read() {}
   });
@@ -26,24 +26,11 @@ export async function POST(req: NextRequest) {
     stream.push(null); 
   });
 
-  const rootDir = path.resolve(process.cwd()); 
-
-  const baseDir = path.join(rootDir, name);
-  if (!fs.existsSync(baseDir)) {
-    fs.mkdirSync(baseDir);
-  }
-  
-
-const srcDir = path.join(baseDir, 'src');
-if (!fs.existsSync(srcDir)) {
-  fs.mkdirSync(srcDir);
-}
 
   if(auth){
     entities = ensureUserModel(entities);
     const middlewareContent = 
-    `
-import jwt from 'jsonwebtoken';
+    `import jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET || 'secretkey';
 const COOKIE_NAME = 'token';
 
@@ -62,14 +49,9 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-export default authMiddleware;
-    `;
+export default authMiddleware;`;
 
     archive.append(middlewareContent, { name: `src/middleware/auth.js` });
-  }
-
-  if (!fs.existsSync(baseDir)) {
-    fs.mkdirSync(baseDir);
   }
 
   let prismaSchema = `generator client {

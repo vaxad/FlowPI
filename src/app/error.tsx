@@ -8,7 +8,7 @@ export default function Error() {
     const router = useRouter();
     useEffect(() => {
         router.replace("/");
-    }, [])
+    }, [router])
 
     return (<></>)
 }

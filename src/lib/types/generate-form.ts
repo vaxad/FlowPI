@@ -1,6 +1,7 @@
 import { Entity, Relation } from "./project";
 import { z } from 'zod';
 
+/* eslint-disable  @typescript-eslint/no-explicit-any */
 const AttributeSchema = z.lazy<any>(() =>
   z.union([
     z.literal("string"),

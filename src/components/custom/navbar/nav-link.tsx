@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 
 export default function NavLink({ href, name }: NavLinkProps) {
     const path = usePathname();
-    console.log({ path, href });
     const isActive = path === href;
     return (
         <Link href={href} className={cn("px-4 py-2 rounded-full hover:bg-foreground hover:text-background transition-all", {
