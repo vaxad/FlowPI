@@ -324,13 +324,9 @@ const readmeContent = `# ${name}` + "\n\nThis is an auto-generated backend API p
 
 archive.append(readmeContent, { name: 'README.md' });
 
-// const envContent = `DATABASE_URL="mongodb://localhost:27017/${name}"\nJWT_SECRET="secretkey"\nPORT=5001`;
+const envContent = `DATABASE_URL="mongodb://localhost:27017/${name}"\nJWT_SECRET="secretkey"\nPORT=5001`;
 
-const envContent = `DATABASE_URL="mongodb+srv://test:nc0FYdNiMfO3w9iw@tsec24.n8e4fkc.mongodb.net/flowpi"
-JWT_SECRET="secretkey"
-PORT=5001`
-
-archive.append(envContent, { name: '.env' });
+archive.append(envContent, { name: '.env.example' });
 
 archive.finalize();
 
