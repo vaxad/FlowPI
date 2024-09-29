@@ -43,11 +43,12 @@ export const attributeTypeToInputType = (attributeType: Attribute): string => {
 }
 
 
-export const attributeTypes: Attribute[] = ["string", "number", "boolean", "Date", "string[]", "number[]", "boolean[]", "Date[]"];
+export const attributeTypes: Attribute[] = ["string", "number", "boolean", "Date"]
+  // "string[]", "number[]", "boolean[]", "Date[]"];
 
 export const constraintTypes: string[] = ["required", "unique", "optional"];
 
-export const relationTypes: string[] = ["1-1", "1-m", "m-1"];
+export const relationTypes: Relation["type"][] = ["1-?1", "1?-1", "1-m", "m-1"];
 
 export const generateRelationField = (relation: Relation): string => {
     const { from, to, type } = relation;
@@ -57,11 +58,14 @@ export const generateRelationField = (relation: Relation): string => {
     const toLower = to.toLowerCase();
   
     switch (type) {
-      case "1-1":
-        return `${toLower} ${to} @relation(fields: [${toLower}Id], references: [id]${relationName ? `, name: "${relationName}"` : ''})\n  ${toLower}Id String @db.ObjectId`;
+      case "1-?1":
+        return `${toLower} ${to} @relation(fields: [${toLower}Id], references: [id]${relationName ? `, name: "${relationName}"` : ''})\n  ${toLower}Id String @db.ObjectId @unique`;
   
+      case "1?-1":
+        return `${toLower} ${to}?\n`;
+
       case "1-m":
-        return `${toLower} ${to}[]\n  ${toLower}Id String @db.ObjectId${isSelfRelation ? ` @relation(name: "${relationName}")` : ''}`;
+        return `${toLower} ${to}[]\n ${isSelfRelation ? `${toLower}Id String @db.ObjectId @relation(name: "${relationName}")` : ''}`;
   
       case "m-1":
         return `${toLower} ${to} @relation(fields: [${toLower}Id], references: [id]${relationName ? `, name: "${relationName}"` : ''})\n  ${toLower}Id String @db.ObjectId`;
@@ -134,10 +138,12 @@ export const generateRelationField = (relation: Relation): string => {
 
 
 export const ensureRelations = (relations: Relation[]): Relation[] => {
+    const newRelations: Relation[] = [...relations];
     relations.forEach((relation) => {
       const { from, to, type } = relation;
-      relations.push({ from: to, to: from, type: type.split("").reverse().join("") as Relation["type"], name: relation.name });
+      if(relations.filter((rel) => rel.from === to && rel.to === from && rel.type===type.split("").reverse().join("")).length === 0)
+        newRelations.push({ from: to, to: from, type: type.split("").reverse().join("") as Relation["type"], name: relation.name });
     });
     
-    return relations;
+    return newRelations;
 }

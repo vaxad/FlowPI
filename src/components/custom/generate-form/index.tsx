@@ -3,19 +3,21 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, useFieldArray } from "react-hook-form"
 import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormField, FormItem } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { GenerateFormData, GenerateFormDataSchema } from "@/lib/types/generate-form"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
-import { Cross1Icon, Crosshair1Icon, InfoCircledIcon, TrashIcon } from "@radix-ui/react-icons"
+import { Cross1Icon, Crosshair1Icon, TrashIcon } from "@radix-ui/react-icons"
 import { ConstraintType } from "@/lib/types/project"
 import Tooltip from "../tooltip"
 import { attributeTypes, attributeTypeToInputType, constraintTypes, ensureRelations, relationTypes } from "@/lib/maps/project"
 import React from "react"
 import { Label } from "@radix-ui/react-label"
 import { Switch } from "@/components/ui/switch"
+import { ErrorMessage } from '@hookform/error-message';
+import { toast } from "sonner"
 
 export default function GenerateForm() {
     const form = useForm<GenerateFormData>({
@@ -64,28 +66,53 @@ export default function GenerateForm() {
 
     const handleSubmit = async (data: GenerateFormData) => {
         try {
-            console.log(data);
-            data.relations = ensureRelations(data.relations);
-            console.log(data);
+            if (Object.keys(form.formState.errors).length > 0) {
+                return toast.error("Please fill in all required fields");
+            }
             const response = await fetch('/api/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
             });
 
-            const result = await response.json();
-            if (response.ok) {
-                alert("Backend API generated and running!");
-            } else {
-                alert("Error: " + result.error);
+            if (!response.ok || !response.body) {
+                throw new Error(`Failed to fetch: ${response.statusText}`);
             }
+
+            // Step 1: Create a readable stream to collect the response chunks
+            const reader = response.body.getReader();
+            const chunks = [];
+            let done = false;
+
+            while (!done) {
+                const { value, done: readerDone } = await reader.read();
+                if (value) {
+                    chunks.push(value); // Add each chunk to the array
+                }
+                done = readerDone;
+            }
+
+            // Step 2: Combine the chunks into a single Blob
+            const blob = new Blob(chunks, { type: 'application/zip' });
+
+            // Step 3: Create a download link for the Blob
+            const url = URL.createObjectURL(blob);
+
+            // Step 4: Create a link element and trigger the download
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${data.name.trim()}.zip`; // The file name for the download
+            document.body.appendChild(a);
+            a.click();
+            // Clean up
+            URL.revokeObjectURL(url);
+            document.body.removeChild(a);
         } catch (error) {
             console.error(error);
             alert("Something went wrong!");
         }
     };
 
-    console.log({ entityFields, relationFields, errors: form.formState.errors, e: form.formState.dirtyFields });
     return (
         <Form {...form}>
             <h1 className="text-2xl font-bold py-2">Create a Project</h1>
@@ -257,12 +284,12 @@ export default function GenerateForm() {
                                             <FormItem className="w-full">
                                                 <Label className="text-sm">From</Label>
                                                 <FormControl>
-                                                    <Select {...field} value={String(field.value)} defaultValue={entities.filter((i) => i.name != form.getValues(`relations.${relationIndex}.to`))[0].name} onValueChange={field.onChange}  >
+                                                    <Select {...field} value={String(field.value)} onValueChange={field.onChange}>
                                                         <SelectTrigger>
-                                                            {field.value}
+                                                            {field.value || "From"}
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            {entities.filter((i) => i.name != form.getValues(`relations.${relationIndex}.to`)).map((ent, idx) => (<SelectItem key={`relation-from-select-${idx}`} value={String(ent.name)}>{String(ent.name)}</SelectItem>))}
+                                                            {entities.filter((i) => i && i.name && i.name.trim().length && i.name != form.getValues(`relations.${relationIndex}.to`)).map((ent, idx) => (<SelectItem key={`relation-from-select-${idx}`} value={String(ent.name)}>{String(ent.name)}</SelectItem>))}
                                                         </SelectContent>
                                                     </Select>
                                                 </FormControl>
@@ -276,12 +303,12 @@ export default function GenerateForm() {
                                             <FormItem className="w-full">
                                                 <Label className="text-sm">To</Label>
                                                 <FormControl>
-                                                    <Select {...field} value={String(field.value)} defaultValue={entities.filter((i) => i.name != form.getValues(`relations.${relationIndex}.from`))[0].name} onValueChange={field.onChange}  >
+                                                    <Select {...field} value={String(field.value)} onValueChange={field.onChange}  >
                                                         <SelectTrigger>
-                                                            {field.value}
+                                                            {field.value || "To"}
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            {entities.filter((i) => i.name != form.getValues(`relations.${relationIndex}.from`)).map((ent, idx) =>
+                                                            {entities.filter((i) => i && i.name && i.name.trim().length && i.name != form.getValues(`relations.${relationIndex}.from`)).map((ent, idx) =>
                                                                 (<SelectItem key={`relation-to-select-${idx}`} value={String(ent.name)}>{String(ent.name)}</SelectItem>))}
                                                         </SelectContent>
                                                     </Select>
@@ -337,6 +364,14 @@ export default function GenerateForm() {
                     )}
                 />
                 <Button type="submit" className="mt-4">Generate Project</Button>
+                <ul>
+                    <li><ErrorMessage errors={form.formState.errors} name="auth" /></li>
+                    <li><ErrorMessage errors={form.formState.errors} name="name" /></li>
+                    <li><ErrorMessage errors={form.formState.errors} name="description" /></li>
+                    <li><ErrorMessage errors={form.formState.errors} name="entities" /></li>
+                    <li><ErrorMessage errors={form.formState.errors} name="relations" /></li>
+
+                </ul>
             </form>
         </Form>
     )

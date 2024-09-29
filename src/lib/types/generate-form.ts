@@ -51,7 +51,7 @@ const EntitySchema = z.object({
 const RelationSchema = z.object({
   from: z.string(),
   to: z.string(),
-  type: z.union([z.literal("1-1"), z.literal("1-m"), z.literal("m-1")]),
+  type: z.union([z.literal("1-?1"), z.literal("1-m"), z.literal("m-1"), z.literal("1?-1")]),
   name: z.string(),
   attributes: z.array(AttributeObjectSchema).optional(),
 });

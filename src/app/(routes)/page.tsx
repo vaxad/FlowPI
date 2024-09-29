@@ -5,13 +5,12 @@ import Link from "next/link";
 export default function Landing() {
 
   return (
-    <main className=" flex flex-col justify-center items-center px-6 md:px-20 flex-grow text-center">
+    <main className=" flex flex-col justify-center px-6 md:px-20 flex-grow">
       <h1 className=" text-6xl font-black pb-4">FlowPI</h1>
-      <p className=" text-xl font-medium pb-12">FlowPI is a low-code platform that allows you to generate a full-stack application with a few clicks. You can generate a backend API, frontend, and database schema based on your requirements.</p>
-      <p className="text-2xl font-semibold pb-4 ">Click on the Generate button to get started!</p>
+      <p className=" text-2xl font-medium pb-12">Automate the creation of fully functional REST APIs for your database models, including CRUD operations, optional authentication, and Prisma ORM integration.</p>
       <Link href="/generate" className={cn(buttonVariants({
-        variant: "default"
-      }), "rounded-full text-2xl py-8 px-6 font-semibold")}>Generate</Link>
+        variant: "outline"
+      }), " text-2xl py-8 px-6 font-semibold bg-transparent hover:bg-foreground hover:text-background")}>Try it out!</Link>
     </main>
   )
 }
