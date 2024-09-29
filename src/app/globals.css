@@ -76,3 +76,8 @@ input{
     @apply bg-background text-foreground;
   }
 }
+
+#rootBody {
+  margin-inline: auto !important; 
+  padding-inline: 1.5rem !important;
+}

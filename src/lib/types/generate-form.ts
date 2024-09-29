@@ -7,15 +7,18 @@ const AttributeSchema = z.lazy<any>(() =>
     z.literal("number"),
     z.literal("boolean"),
     z.literal("Date"),
-    z.literal("reference"),
-    z.array(AttributeSchema) 
+    z.literal("string[]"),
+    z.literal("number[]"),
+    z.literal("boolean[]"),
+    z.literal("Date[]"), 
   ])
 );
 
 const ConstraintTypeSchema = z.union([
   z.literal("unique"),
   z.literal("optional"),
-  z.literal("default")
+  z.literal("default"),
+  z.literal("required"),
 ]);
 
 const ConstraintSchema = z.object({
@@ -48,9 +51,9 @@ const EntitySchema = z.object({
 const RelationSchema = z.object({
   from: z.string(),
   to: z.string(),
-  type: z.union([z.literal("1-1"), z.literal("1-m"), z.literal("m-1"), z.literal("m-m")]),
+  type: z.union([z.literal("1-1"), z.literal("1-m"), z.literal("m-1")]),
   name: z.string(),
-  attributes: z.array(AttributeObjectSchema),
+  attributes: z.array(AttributeObjectSchema).optional(),
 });
 
 export const GenerateFormDataSchema = z.object({

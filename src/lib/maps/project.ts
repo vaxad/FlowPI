@@ -15,12 +15,39 @@ export const attributeTypeToPrismaType = (attributeType: Attribute): string => {
     if(attributeType === "Date")
     return "DateTime";
 
-    if(Array.isArray(attributeType)){
-        return `${attributeTypeToPrismaType(attributeType[0])}[]`;
+    if(attributeType.includes("[]")){
+      return `${attributeTypeToPrismaType(attributeType.slice(0,-2) as Attribute)}[]`;
     }
 
     return "String";
 }
+
+export const attributeTypeToInputType = (attributeType: Attribute): string => {
+    if(attributeType === "string")
+    return "text";
+
+    if(attributeType === "number")
+    return "number";
+
+    if(attributeType === "boolean")
+    return "checkbox";
+
+    if(attributeType === "Date")
+    return "date";
+
+    if(attributeType.includes("[]")){
+      return "text";
+    }
+
+    return "text";
+}
+
+
+export const attributeTypes: Attribute[] = ["string", "number", "boolean", "Date", "string[]", "number[]", "boolean[]", "Date[]"];
+
+export const constraintTypes: string[] = ["required", "unique", "optional"];
+
+export const relationTypes: string[] = ["1-1", "1-m", "m-1"];
 
 export const generateRelationField = (relation: Relation): string => {
     const { from, to, type } = relation;
@@ -38,9 +65,6 @@ export const generateRelationField = (relation: Relation): string => {
   
       case "m-1":
         return `${toLower} ${to} @relation(fields: [${toLower}Id], references: [id]${relationName ? `, name: "${relationName}"` : ''})\n  ${toLower}Id String @db.ObjectId`;
-  
-      case "m-m":
-        return `${toLower} ${to}[]${isSelfRelation ? ` @relation(name: "${relationName}")` : ''}`;
     }
   };
 
@@ -107,4 +131,13 @@ export const generateRelationField = (relation: Relation): string => {
   
     return entities;
   };
-  
+
+
+export const ensureRelations = (relations: Relation[]): Relation[] => {
+    relations.forEach((relation) => {
+      const { from, to, type } = relation;
+      relations.push({ from: to, to: from, type: type.split("").reverse().join("") as Relation["type"], name: relation.name });
+    });
+    
+    return relations;
+}
