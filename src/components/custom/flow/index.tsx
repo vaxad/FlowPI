@@ -125,7 +125,7 @@ export default function Flow() {
 
     return (
         <>
-            <div className='w-full relative flex-grow bg-purple-400/20 h-[80vh] rounded mt-4'>
+            <div className='relative w-full flex-grow bg-purple-400/20 h-[80vh] rounded mt-4'>
                 <ReactFlow
                     nodes={nodes}
                     edges={edges}
