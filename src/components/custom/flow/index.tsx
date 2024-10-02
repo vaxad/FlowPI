@@ -59,17 +59,20 @@ export default function Flow() {
                 }),
                 relations: edges.map((edge) => {
                     const { data } = edge as RelationEdgeProps;
+                    const from = nodes.find((node) => node.id === edge.source)?.data.name;
+                    const to = nodes.find((node) => node.id === edge.target)?.data.name;
+                    if (!from || !to) return false;
                     return {
-                        from: edge.source,
-                        to: edge.target,
+                        from,
+                        to,
                         type: data?.type || "1-m",
-                        name: `{edge.source}To{edge.target}`
+                        name: `${from}To${to}`
                     }
-                })
+                }).filter((edge) => edge !== false)
             }
 
             if (!checkData(data)) return;
-
+            console.log(data);
             const response = await fetch('/api/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
