@@ -9,7 +9,9 @@ import { Readable } from 'stream';
 export async function POST(req: NextRequest) {
   const body: GenerateFormData =  await req.json();
   let { entities, relations } =  body
-  const { auth, name, description } =  body
+  const { auth:bodyAuth, name, description } =  body
+
+  const auth = bodyAuth && (bodyAuth as unknown as string) != 'false' ;
   
   const archive = archiver('zip', { zlib: { level: 9 } });
   relations = ensureRelations(relations);

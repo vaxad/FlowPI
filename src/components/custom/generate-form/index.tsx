@@ -18,6 +18,7 @@ import { Label } from "@radix-ui/react-label"
 import { Switch } from "@/components/ui/switch"
 import { ErrorMessage } from '@hookform/error-message';
 import { toast } from "sonner"
+import { checkData } from "@/lib/utils"
 
 export default function GenerateForm() {
     const form = useForm<GenerateFormData>({
@@ -69,6 +70,8 @@ export default function GenerateForm() {
             if (Object.keys(form.formState.errors).length > 0) {
                 return toast.error("Please fill in all required fields");
             }
+
+            if (!checkData(data)) return;
             const response = await fetch('/api/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -79,7 +82,6 @@ export default function GenerateForm() {
                 throw new Error(`Failed to fetch: ${response.statusText}`);
             }
 
-            // Step 1: Create a readable stream to collect the response chunks
             const reader = response.body.getReader();
             const chunks = [];
             let done = false;
@@ -91,20 +93,16 @@ export default function GenerateForm() {
                 }
                 done = readerDone;
             }
-
-            // Step 2: Combine the chunks into a single Blob
             const blob = new Blob(chunks, { type: 'application/zip' });
 
-            // Step 3: Create a download link for the Blob
             const url = URL.createObjectURL(blob);
 
-            // Step 4: Create a link element and trigger the download
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${data.name.trim()}.zip`; // The file name for the download
+            a.download = `${data.name.trim()}.zip`;
             document.body.appendChild(a);
             a.click();
-            // Clean up
+
             URL.revokeObjectURL(url);
             document.body.removeChild(a);
         } catch (error) {
@@ -363,7 +361,7 @@ export default function GenerateForm() {
                         </FormItem>
                     )}
                 />
-                <Button type="submit" className="mt-4">Generate Project</Button>
+                <Button type="submit" className="mt-4 w-full">Generate Project</Button>
                 <ul>
                     <li><ErrorMessage errors={form.formState.errors} name="auth" /></li>
                     <li><ErrorMessage errors={form.formState.errors} name="name" /></li>

@@ -101,11 +101,9 @@ export const generateRelationField = (relation: Relation): string => {
 
 
   export const ensureUserModel = (entities: Entity[]): Entity[] => {
-    // Check if "User" or "user" model exists
     let userEntity = entities.find(entity => entity.name.toLowerCase() === "user");
   
     if (!userEntity) {
-      // If user model does not exist, create it
       userEntity = {
         name: "User",
         attributes: [
@@ -115,7 +113,6 @@ export const generateRelationField = (relation: Relation): string => {
       };
       entities.push(userEntity);
     } else {
-      // Ensure "email" and "password" fields exist in the "User" model
       const emailField = userEntity.attributes.find(attr => attr.name === "email");
       const passwordField = userEntity.attributes.find(attr => attr.name === "password");
   
