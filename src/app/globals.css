@@ -81,3 +81,8 @@ input{
   margin-inline: auto !important; 
   padding-inline: 1.5rem !important;
 }
+
+html {
+  scroll-margin-block-start: 0;
+  scroll-behavior: smooth;
+}
