@@ -1,17 +1,19 @@
 "use client"
-import { addEdge, Background, BackgroundVariant, ControlButton, Controls, MiniMap, ReactFlow, useEdgesState, useNodesState } from '@xyflow/react';
+import { addEdge, Background, BackgroundVariant, MiniMap, ReactFlow, useEdgesState, useNodesState } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import EntityNode, { EntityNodeProps } from './entity-node';
-import { PlusIcon } from 'lucide-react';
 import RelationEdge, { RelationEdgeProps } from './relation-edge';
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { GenerateFormData } from '@/lib/types/generate-form';
-import { checkData } from '@/lib/utils';
+import { generateProjectFolder } from '@/lib/utils';
+import DownloadButton from './download-button';
+import Toolbar from './toolbar';
+import { UseFormReturn } from 'react-hook-form';
 
 const initialNodes: EntityNodeProps[] = [
     { id: '1', position: { x: 10, y: 10 }, data: { name: '', attributes: [{ name: "", type: "string" }], open: true }, type: 'entity' },
@@ -27,8 +29,13 @@ const nodeTypes = {
     'entity': EntityNode,
 };
 
-export default function Flow() {
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+interface FlowProps {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    form?: UseFormReturn<GenerateFormData, any, undefined>
+}
+
+export default function Flow({ form }: FlowProps) {
+    const [nodes, , onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
     const [auth, setAuth] = React.useState(false);
@@ -38,6 +45,31 @@ export default function Flow() {
         (params: any) => setEdges((eds) => addEdge({ ...params, type: "relation", data: { type: "1-m" } }, eds)),
         [setEdges],
     )
+
+    useEffect(() => {
+        if (!form) return;
+        form.setValue("entities", nodes.map((node) => ({
+            name: node.data.name,
+            attributes: node.data.attributes,
+        })))
+    }, [nodes])
+
+    useEffect(() => {
+        if (!form) return;
+        form.setValue("relations", edges.map((edge) => {
+            const from = nodes.find((node) => node.id === edge.source)?.data.name;
+            const to = nodes.find((node) => node.id === edge.target)?.data.name;
+            const type = edge?.data?.type;
+            if (!from || !to || !type) return false;
+            return {
+                from,
+                to,
+                type,
+                name: `${from}To${to}`
+            }
+        }).filter((edge) => !!edge))
+    }, [edges])
+
 
     async function generateProject() {
         try {
@@ -71,59 +103,11 @@ export default function Flow() {
                 }).filter((edge) => edge !== false)
             }
 
-            if (!checkData(data)) return;
-            console.log(data);
-            const response = await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-
-            if (!response.ok || !response.body) {
-                throw new Error(`Failed to fetch: ${response.statusText}`);
-            }
-
-            const reader = response.body.getReader();
-            const chunks = [];
-            let done = false;
-
-            while (!done) {
-                const { value, done: readerDone } = await reader.read();
-                if (value) {
-                    chunks.push(value); // Add each chunk to the array
-                }
-                done = readerDone;
-            }
-            const blob = new Blob(chunks, { type: 'application/zip' });
-
-            const url = URL.createObjectURL(blob);
-
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${data.name.trim()}.zip`;
-            document.body.appendChild(a);
-            a.click();
-
-            URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+            await generateProjectFolder(data)
         } catch (error) {
             console.error(error);
             alert("Something went wrong!");
         }
-    }
-
-    const createNode = () => {
-        setNodes((nodes) => {
-            return [
-                ...nodes,
-                {
-                    id: (parseInt(nodes[nodes.length - 1]?.id || '0') + 1).toString(),
-                    type: 'entity',
-                    data: { name: '', attributes: [{ name: "", type: "string" }], open: true },
-                    position: { x: (nodes[nodes.length - 1]?.position.x || 10) + 300, y: nodes[nodes.length - 1]?.position.y || 10 },
-                } as EntityNodeProps,
-            ];
-        });
     }
 
     return (
@@ -139,21 +123,9 @@ export default function Flow() {
                     edgeTypes={edgeTypes}
                 >
                     <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-                    <div className='hidden md:block'>
-                        <Controls showZoom={false} orientation='horizontal' position="bottom-center" className='text-black flex' >
-                            <ControlButton title='add entity' onClick={createNode}>
-                                <PlusIcon size={20} />
-                            </ControlButton>
-                        </Controls>
-                    </div>
-                    <div className='block md:hidden'>
-                        <Controls showZoom={false} orientation='vertical' position="bottom-left" className='text-black flex' >
-                            <ControlButton title='add entity' onClick={createNode}>
-                                <PlusIcon size={20} />
-                            </ControlButton>
-                        </Controls>
-                    </div>
                     <MiniMap />
+                    <Toolbar />
+                    <DownloadButton />
                 </ReactFlow>
             </div>
             <div className="flex justify-between items-center mt-4">

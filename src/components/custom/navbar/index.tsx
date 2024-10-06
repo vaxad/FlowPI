@@ -12,12 +12,12 @@ export default function navbar() {
             href: "/"
         },
         {
-            name: "Generate",
-            href: "/generate"
+            name: "Create",
+            href: "/create"
         },
         {
-            name: "Flow",
-            href: "/flow"
+            name: "Docs",
+            href: "/docs"
         },
         {
             name: "Contact",
@@ -39,7 +39,7 @@ export default function navbar() {
                     <ModeToggle />
                 </div>
             </div>
-            <nav className="flex fixed top-2 rounded-full border border-foreground p-0.5 w-fit left-1/2 -translate-x-1/2 bg-background">
+            <nav className="flex fixed top-2 rounded-full border border-foreground p-0.5 w-fit left-1/2 -translate-x-1/2 bg-background z-50">
                 {navLinks.map((link, index) => (
                     <NavLink key={index} href={link.href} name={link.name} />
                 ))}

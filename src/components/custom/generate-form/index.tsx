@@ -1,11 +1,10 @@
 "use client"
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, useFieldArray } from "react-hook-form"
+import { useFieldArray, UseFormReturn } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { GenerateFormData, GenerateFormDataSchema } from "@/lib/types/generate-form"
+import { GenerateFormData } from "@/lib/types/generate-form"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
@@ -18,19 +17,14 @@ import { Label } from "@radix-ui/react-label"
 import { Switch } from "@/components/ui/switch"
 import { ErrorMessage } from '@hookform/error-message';
 import { toast } from "sonner"
-import { checkData } from "@/lib/utils"
+import { generateProjectFolder } from "@/lib/utils"
+import { placeholderData } from "@/lib/constants"
 
-export default function GenerateForm() {
-    const form = useForm<GenerateFormData>({
-        resolver: zodResolver(GenerateFormDataSchema),
-        defaultValues: {
-            name: "",
-            description: "",
-            entities: [{ name: '', attributes: [] }],
-            relations: [],
-            auth: false,
-        },
-    });
+interface GenerateFormProps {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    form: UseFormReturn<GenerateFormData, any, undefined>
+}
+export default function GenerateForm({ form }: GenerateFormProps) {
 
     const entities = form.watch('entities');
 
@@ -43,6 +37,9 @@ export default function GenerateForm() {
         control: form.control,
         name: "relations",
     });
+
+    console.log({ entities });
+
 
     const removeAttribute = (entityIndex: number, attributeIndex: number) => {
         const updatedEntity = form.getValues(`entities.${entityIndex}`);
@@ -71,49 +68,33 @@ export default function GenerateForm() {
                 return toast.error("Please fill in all required fields");
             }
 
-            if (!checkData(data)) return;
-            const response = await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-
-            if (!response.ok || !response.body) {
-                throw new Error(`Failed to fetch: ${response.statusText}`);
-            }
-
-            const reader = response.body.getReader();
-            const chunks = [];
-            let done = false;
-
-            while (!done) {
-                const { value, done: readerDone } = await reader.read();
-                if (value) {
-                    chunks.push(value); // Add each chunk to the array
-                }
-                done = readerDone;
-            }
-            const blob = new Blob(chunks, { type: 'application/zip' });
-
-            const url = URL.createObjectURL(blob);
-
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${data.name.trim()}.zip`;
-            document.body.appendChild(a);
-            a.click();
-
-            URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+            await generateProjectFolder(data)
         } catch (error) {
             console.error(error);
             alert("Something went wrong!");
         }
     };
 
+    function onUseExample() {
+        form.setValue("name", placeholderData.name)
+        form.setValue("description", placeholderData.description)
+        form.setValue("entities", placeholderData.entities)
+        form.setValue("relations", placeholderData.relations)
+    }
+
     return (
         <Form {...form}>
-            <h1 className="text-2xl font-bold py-2">Create a Project</h1>
+            <div className="flex items-center justify-between w-full">
+                <h1 className="text-2xl font-bold py-2">Use a Form</h1>
+                <div className="flex gap-2">
+                    <Button variant="destructive" type="button" onClick={() => form.reset()}>
+                        Reset
+                    </Button>
+                    <Button variant="outline" type="button" onClick={onUseExample}>
+                        Use Example
+                    </Button>
+                </div>
+            </div>
             <Separator className="mb-2" />
             <form onSubmit={form.handleSubmit(handleSubmit)}>
                 <FormField
@@ -127,7 +108,6 @@ export default function GenerateForm() {
                         </FormItem>
                     )}
                 />
-
                 <FormField
                     control={form.control}
                     name="description"

@@ -105,11 +105,12 @@ router.get('/', ${auth ? "authMiddleware, " : ""}async (req, res) => {
   }
 });
 
-router.post('/', ${auth ? "authMiddleware, " : ""}async (req, res) => {
+${entityLower=="user"&&auth? "" : 
+`router.post('/', ${auth ? "authMiddleware, " : ""}async (req, res) => {
   try {
     const parsedBody = parseBody(req.body, ${entityLower}Entity.attributes);
     const ${entityLower} = await prisma.${entityLower}.create({
-      data: parsedBody,
+      data: ${auth? `{ ...parsedBody, user: { connect: { id: req.user.id } } }` : "parsedBody"},
     });
     res.json(${entityLower});
   } catch (error) {
@@ -117,14 +118,14 @@ router.post('/', ${auth ? "authMiddleware, " : ""}async (req, res) => {
     res.status(500).json({ error: 'An error occurred while creating a ${entityLower}' });
   }
 });
-
+`}
 router.put('/:id', ${auth ? "authMiddleware, " : ""}async (req, res) => {
   try {
     const { id } = req.params;
     const parsedBody = parseBody(req.body, ${entityLower}Entity.attributes);
     const ${entityLower} = await prisma.${entityLower}.update({
       where: { id: Number(id) },
-      data: parsedBody,
+       data: ${auth && entityLower != "user"? `{ ...parsedBody, user: { connect: { id: req.user.id } } }` : "parsedBody"},
     });
     res.json(${entityLower});
   } catch (error) {
@@ -156,7 +157,8 @@ const COOKIE_NAME = 'token';
 
 router.post('/signup', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const parsedBody = parseBody(req.body, ${entityLower}Entity.attributes);
+    const { email, password } = parsedBody;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
@@ -172,7 +174,7 @@ router.post('/signup', async (req, res) => {
 
     const newUser = await prisma.user.create({
       data: {
-        ...req.body,
+        ...parsedBody,
         email,
         password: hashedPassword
       }
@@ -192,7 +194,9 @@ router.post('/signup', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const parsedBody = parseBody(req.body, ${entityLower}Entity.attributes);
+
+    const { email, password } = parsedBody;
     
     const user = await prisma.user.findUnique({ where: { email } });
 
@@ -258,86 +262,72 @@ export const ${entity.name.toLowerCase()}Entity = {
 
   archive.append(content, { name: `src/structure/entities.js` });
 
-  content = relations.map((relation) => {
-    return `
-export const ${relation.name}Relation = {
-  from: '${relation.from}',
-  to: '${relation.to}',
-  type: '${relation.type}',
-  name: '${relation.name}'
-};
-    `;
-  }).join('\n');
-
-  content += `\nexport default { ${relations.map(r => `${r.name}Relation`).join(', ')} };`;
-
-  archive.append(content, { name: `src/structure/relations.js` });
-
   content = 'export function parseBody(body, entityAttributes) {\n  const parsedBody = {};\n  entityAttributes.forEach((attribute) => {\n    const { name, type } = attribute;\n    const value = body[name];\n    if (value === undefined || value === null) return;\n    switch (type) {\n      case "string":\n        parsedBody[name] = String(value);\n        break;\n      case "number":\n        parsedBody[name] = Number(value);\n        if (isNaN(parsedBody[name])) {\n          throw new Error(`Invalid number for field "${name}"`);\n        }\n        break;\n      case "boolean":\n        if (value === "true" || value === true) {\n          parsedBody[name] = true;\n        } else if (value === "false" || value === false) {\n          parsedBody[name] = false;\n        } else {\n          throw new Error(`Invalid boolean for field "${name}"`);\n        }\n        break;\n      case "Date":\n        const dateValue = new Date(value);\n        if (isNaN(dateValue.getTime())) {\n          throw new Error(`Invalid date for field "${name}"`);\n        }\n        parsedBody[name] = dateValue;\n        break;\n      case "string[]":\n        if (Array.isArray(value)) {\n          parsedBody[name] = value.map((val) => String(val));\n        } else {\n          throw new Error(`Invalid array of strings for field "${name}"`);\n        }\n        break;\n      case "number[]":\n        if (Array.isArray(value)) {\n          parsedBody[name] = value.map((val) => {\n            const numVal = Number(val);\n            if (isNaN(numVal)) {\n              throw new Error(`Invalid number in array for field "${name}"`);\n            }\n            return numVal;\n          });\n        } else {\n          throw new Error(`Invalid array of numbers for field "${name}"`);\n        }\n        break;\n      case "boolean[]":\n        if (Array.isArray(value)) {\n          parsedBody[name] = value.map((val) => {\n            if (val === "true" || val === true) return true;\n            if (val === "false" || val === false) return false;\n            throw new Error(`Invalid boolean in array for field "${name}"`);\n          });\n        } else {\n          throw new Error(`Invalid array of booleans for field "${name}"`);\n        }\n        break;\n      case "Date[]":\n        if (Array.isArray(value)) {\n          parsedBody[name] = value.map((val) => {\n            const dateArrayValue = new Date(val);\n            if (isNaN(dateArrayValue.getTime())) {\n              throw new Error(`Invalid date in array for field "${name}"`);\n            }\n            return dateArrayValue;\n          });\n        } else {\n          throw new Error(`Invalid array of dates for field "${name}"`);\n        }\n        break;\n      default:\n        throw new Error(`Unsupported type: ${type}`);\n    }\n  });\n  return parsedBody;\n}\n'
 
   archive.append(content, { name: `src/lib/helpers.js` });
-let appJs = `
-import {config} from "dotenv"
-import express from 'express';
-import cookieParser from 'cookie-parser';
-import cors from 'cors';
 
-config({
-    path: '.env'
-})
-const app = express();
-app.use(express.json());
-app.use(cookieParser()); 
-app.use(cors());
+  let appJs = `
+  import {config} from "dotenv"
+  import express from 'express';
+  import cookieParser from 'cookie-parser';
+  import cors from 'cors';
 
-`;
+  config({
+      path: '.env'
+  })
+  const app = express();
+  app.use(express.json());
+  app.use(cookieParser()); 
+  app.use(cors());
 
-entities.forEach((entity) => {
-  const entityLower = entity.name.toLowerCase();
-  appJs += `// Route for ${entity.name}
-import ${entityLower}Router from './routes/${entityLower}.js';
-app.use('/${entityLower}', ${entityLower}Router);
-`;
-});
+  `;
 
-appJs += `
-const port = process.env.PORT || 3000
-app.listen(port, () => {
-console.log(\`Server is running on port \${port}\`);
-});
-`;
+  entities.forEach((entity) => {
+    const entityLower = entity.name.toLowerCase();
+    appJs += `// Route for ${entity.name}
+  import ${entityLower}Router from './routes/${entityLower}.js';
+  app.use('/${entityLower}', ${entityLower}Router);
+  `;
+  });
 
-archive.append(appJs, { name: `src/app.js` });
+  appJs += `
+  const port = process.env.PORT || 3000
+  app.listen(port, () => {
+  console.log(\`Server is running on port \${port}\`);
+  });
+  `;
 
-  const packageJson = `{
-  "name": "generated-express-app",
-  "description": "${description || "Generated by FlowPI"}",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "src/app.js",
-  "scripts": {
-    "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
-  },
-  "dependencies": {
-    "@prisma/client": "^5.20.0",
-    "bcryptjs": "^2.4.3",
-    "cookie-parser": "^1.4.6",
-    "dotenv": "^16.4.5",
-    "cors": "^2.8.5",
-    "express": "^4.21.0",
-    "jsonwebtoken": "^9.0.2",
-    "prisma": "^5.20.0"
-  },
-  "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/cookie-parser": "^1.4.7",
-    "@types/express": "^5.0.0",
-    "@types/cors": "^2.8.17",
-    "@types/jsonwebtoken": "^9.0.7"
+  archive.append(appJs, { name: `src/app.js` });
+
+    const packageJson = `{
+    "name": "generated-express-app",
+    "description": "${description || "Generated by FlowPI"}",
+    "version": "1.0.0",
+    "type": "module",
+    "main": "src/app.js",
+    "scripts": {
+      "start": "node src/app.js",
+      "dev": "nodemon src/app.js"
+    },
+    "dependencies": {
+      "@prisma/client": "^5.20.0",
+      "bcryptjs": "^2.4.3",
+      "cookie-parser": "^1.4.6",
+      "dotenv": "^16.4.5",
+      "cors": "^2.8.5",
+      "express": "^4.21.0",
+      "jsonwebtoken": "^9.0.2",
+      "prisma": "^5.20.0"
+    },
+    "devDependencies": {
+      "@types/bcryptjs": "^2.4.6",
+      "@types/cookie-parser": "^1.4.7",
+      "@types/express": "^5.0.0",
+      "@types/cors": "^2.8.17",
+      "@types/jsonwebtoken": "^9.0.7"
+    }
   }
-}
-`;
+  `;
 
 archive.append(packageJson, { name: 'package.json' });
 

@@ -30,3 +30,40 @@ export const checkData = (data:GenerateFormData) => {
 
   return true;
 }
+
+export async function generateProjectFolder(data: GenerateFormData) {
+  if (!checkData(data)) return;
+    const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+
+    if (!response.ok || !response.body) {
+        throw new Error(`Failed to fetch: ${response.statusText}`);
+    }
+
+    const reader = response.body.getReader();
+    const chunks = [];
+    let done = false;
+
+    while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        if (value) {
+            chunks.push(value); // Add each chunk to the array
+        }
+        done = readerDone;
+    }
+    const blob = new Blob(chunks, { type: 'application/zip' });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${data.name.trim()}.zip`;
+    document.body.appendChild(a);
+    a.click();
+
+    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+}
