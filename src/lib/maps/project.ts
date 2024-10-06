@@ -10,7 +10,7 @@ export const attributeTypeToPrismaType = (attributeType: Attribute): string => {
     return capitalize(attributeType);
 
     if(attributeType === "number")
-    return "BigInt";
+    return "Int";
 
     if(attributeType === "Date")
     return "DateTime";
