@@ -10,7 +10,7 @@ export function useGenerateForm() {
             description: "",
             entities: [{ name: '', attributes: [] }],
             relations: [],
-            auth: false,
+            auth: true,
         },
     });
 

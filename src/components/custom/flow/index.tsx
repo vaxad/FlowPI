@@ -38,7 +38,7 @@ export default function Flow({ form }: FlowProps) {
     const [nodes, , onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-    const [auth, setAuth] = React.useState(false);
+    const [auth, setAuth] = React.useState(true);
 
     const onConnect = useCallback(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

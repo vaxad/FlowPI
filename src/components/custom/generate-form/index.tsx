@@ -38,9 +38,6 @@ export default function GenerateForm({ form }: GenerateFormProps) {
         name: "relations",
     });
 
-    console.log({ entities });
-
-
     const removeAttribute = (entityIndex: number, attributeIndex: number) => {
         const updatedEntity = form.getValues(`entities.${entityIndex}`);
         if (!updatedEntity) return;
